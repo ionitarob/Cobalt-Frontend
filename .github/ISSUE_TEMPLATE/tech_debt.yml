@@ -1,0 +1,11 @@
+---
+name: Tech Debt
+description: Refactor or cleanup
+labels: ["tech-debt"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: What needs cleaning up?
+    validations:
+      required: true
