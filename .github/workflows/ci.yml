@@ -1,9 +1,12 @@
 name: CI
+
 on:
   pull_request:
     branches: [develop, staging, release, main]
+
 jobs:
   analyze:
+    name: Analyze & unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,3 +17,63 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
       - run: flutter test
+
+  integration:
+    name: Integration tests (real backend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: ionitarob/Cobalt-Backend
+          path: cobalt-backend
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: cobalt-backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: pip install -r cobalt-backend/requirements.txt
+
+      - name: Migrate test database
+        working-directory: cobalt-backend
+        env:
+          GRANITE_USE_SQLITE: "true"
+          DJANGO_SECRET_KEY: "ci-integration-secret"
+          DJANGO_DEBUG: "true"
+          DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost"
+        run: python manage.py migrate --run-syncdb
+
+      - name: Start backend server
+        working-directory: cobalt-backend
+        env:
+          GRANITE_USE_SQLITE: "true"
+          DJANGO_SECRET_KEY: "ci-integration-secret"
+          DJANGO_DEBUG: "true"
+          DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost"
+        run: python manage.py runserver 8000 --noreload &
+
+      - name: Wait for backend to be ready
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8000/api/health/ && echo "Backend ready" && break
+            echo "Waiting for backend... ($i)"
+            sleep 2
+          done
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Run integration tests
+        run: flutter test test_integration/ --dart-define=API_BASE_URL=http://127.0.0.1:8000

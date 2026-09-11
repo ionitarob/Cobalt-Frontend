@@ -37,6 +37,7 @@ dependencies:
   fluent_ui: ^4.16.1
   native_liquid_glass: ^0.2.15
   go_router: ^18.0.1
+  dio: ^5.11.1
 
 dev_dependencies:
   flutter_test:
