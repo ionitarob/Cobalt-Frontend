@@ -1,0 +1,45 @@
+name: Build macOS
+on:
+  push:
+    branches: [staging, release, main]
+jobs:
+  build:
+    runs-on: macos-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'release' && 'rc' || 'staging' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          cache: true
+      - run: flutter pub get
+      - name: Set backend URL
+        run: sed -i '' "s|kBackendBaseUrl = '.*'|kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'|" lib/config.dart
+      - run: flutter build macos --release
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg --volname "ConfigTool Cobalt" --window-size 600 400 --icon-size 128 \
+            --icon "configtool_cobalt.app" 150 185 --app-drop-link 450 185 \
+            ConfigToolCobalt.dmg "build/macos/Build/Products/Release/configtool_cobalt.app"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Determine channel
+        id: ch
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then echo "name=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" = "release" ]; then echo "name=rc" >> $GITHUB_OUTPUT
+          else echo "name=beta" >> $GITHUB_OUTPUT; fi
+      - name: Upload
+        run: |
+          C=${{ steps.ch.outputs.name }}
+          V=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          aws s3 cp ConfigToolCobalt.dmg s3://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}/macos/$C/ConfigToolCobalt-$C.dmg
+          URL="https://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}.s3.${{ secrets.AWS_REGION }}.amazonaws.com/macos/$C/ConfigToolCobalt-$C.dmg"
+          echo "{\"version\":\"$V\",\"channel\":\"$C\",\"download_url\":\"$URL\",\"force_update\":false}" > version.json
+          aws s3 cp version.json s3://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}/macos/$C/version.json
