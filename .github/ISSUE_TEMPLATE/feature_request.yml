@@ -1,0 +1,17 @@
+---
+name: Feature Request
+description: New feature or improvement
+labels: ["feature","needs-triage"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: What do you want?
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why is this needed?
+    validations:
+      required: true
