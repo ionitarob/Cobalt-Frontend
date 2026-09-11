@@ -1,0 +1,43 @@
+name: Build Android
+on:
+  push:
+    branches: [staging, release, main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'release' && 'rc' || 'staging' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          cache: true
+      - run: flutter pub get
+      - name: Set backend URL
+        run: sed -i "s|kBackendBaseUrl = '.*'|kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'|" lib/config.dart
+      - run: flutter build apk --release
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Determine channel
+        id: ch
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then echo "name=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" = "release" ]; then echo "name=rc" >> $GITHUB_OUTPUT
+          else echo "name=beta" >> $GITHUB_OUTPUT; fi
+      - name: Upload APK + manifest
+        run: |
+          C=${{ steps.ch.outputs.name }}
+          V=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          aws s3 cp build/app/outputs/flutter-apk/app-release.apk s3://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}/android/$C/ConfigToolCobalt-$C.apk
+          URL="https://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}.s3.${{ secrets.AWS_REGION }}.amazonaws.com/android/$C/ConfigToolCobalt-$C.apk"
+          echo "{\"version\":\"$V\",\"channel\":\"$C\",\"download_url\":\"$URL\",\"force_update\":false}" > version.json
+          aws s3 cp version.json s3://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}/android/$C/version.json
