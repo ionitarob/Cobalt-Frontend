@@ -1,0 +1,48 @@
+name: Build Windows
+on:
+  push:
+    branches: [staging, release, main]
+jobs:
+  build:
+    runs-on: windows-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'release' && 'rc' || 'staging' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          cache: true
+      - run: flutter pub get
+      - name: Set backend URL
+        shell: pwsh
+        run: (Get-Content lib/config.dart) -replace "kBackendBaseUrl = '.*'", "kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'" | Set-Content lib/config.dart
+      - run: flutter build windows --release
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          $v = (Select-String pubspec.yaml -Pattern "^version:").Line.Split(" ")[1].Split("+")[0]
+          iscc /DAppVersion=$v windows/installer.iss
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Determine channel
+        id: ch
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_name }}" -eq "main") { "name=production" >> $env:GITHUB_OUTPUT }
+          elseif ("${{ github.ref_name }}" -eq "release") { "name=rc" >> $env:GITHUB_OUTPUT }
+          else { "name=beta" >> $env:GITHUB_OUTPUT }
+      - name: Upload
+        shell: pwsh
+        run: |
+          $c = "${{ steps.ch.outputs.name }}"
+          $v = (Select-String pubspec.yaml -Pattern "^version:").Line.Split(" ")[1].Split("+")[0]
+          aws s3 cp windows/output/ConfigToolCobalt-setup.exe s3://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}/windows/$c/ConfigToolCobalt-$c-setup.exe
+          $url = "https://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}.s3.${{ secrets.AWS_REGION }}.amazonaws.com/windows/$c/ConfigToolCobalt-$c-setup.exe"
+          @{version=$v;channel=$c;download_url=$url;force_update=$false} | ConvertTo-Json | Out-File version.json -Encoding utf8
+          aws s3 cp version.json s3://granite-frontend-${{ secrets.AWS_ACCOUNT_ID }}/windows/$c/version.json
