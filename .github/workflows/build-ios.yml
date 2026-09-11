@@ -1,0 +1,39 @@
+name: Build iOS (TestFlight)
+on:
+  push:
+    branches: [staging, release, main]
+jobs:
+  build:
+    runs-on: macos-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'release' && 'rc' || 'staging' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          cache: true
+      - run: flutter pub get
+      - name: Set backend URL
+        run: sed -i '' "s|kBackendBaseUrl = '.*'|kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'|" lib/config.dart
+      - name: Import certificate
+        env:
+          CERT_B64: ${{ secrets.APPLE_CERTIFICATE }}
+          CERT_PASS: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$CERT_B64" | base64 --decode > cert.p12
+          security create-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "$CERT_PASS" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+      - run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+      - uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: build/ios/ipa/configtool_cobalt.ipa
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
