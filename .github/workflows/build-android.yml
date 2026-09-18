@@ -20,9 +20,7 @@ jobs:
           flutter-version: "3.x"
           cache: true
       - run: flutter pub get
-      - name: Set backend URL
-        run: sed -i "s|kBackendBaseUrl = '.*'|kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'|" lib/config.dart
-      - run: flutter build apk --release
+      - run: flutter build apk --release --dart-define=API_BASE_URL=${{ secrets.BACKEND_URL }}
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}

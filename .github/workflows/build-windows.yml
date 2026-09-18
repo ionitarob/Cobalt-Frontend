@@ -16,10 +16,7 @@ jobs:
           flutter-version: "3.x"
           cache: true
       - run: flutter pub get
-      - name: Set backend URL
-        shell: pwsh
-        run: (Get-Content lib/config.dart) -replace "kBackendBaseUrl = '.*'", "kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'" | Set-Content lib/config.dart
-      - run: flutter build windows --release
+      - run: flutter build windows --release --dart-define=API_BASE_URL=${{ secrets.BACKEND_URL }}
       - name: Build installer
         shell: pwsh
         run: |

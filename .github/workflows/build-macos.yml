@@ -16,9 +16,7 @@ jobs:
           flutter-version: "3.x"
           cache: true
       - run: flutter pub get
-      - name: Set backend URL
-        run: sed -i '' "s|kBackendBaseUrl = '.*'|kBackendBaseUrl = '${{ secrets.BACKEND_URL }}'|" lib/config.dart
-      - run: flutter build macos --release
+      - run: flutter build macos --release --dart-define=API_BASE_URL=${{ secrets.BACKEND_URL }}
       - name: Create DMG
         run: |
           brew install create-dmg
