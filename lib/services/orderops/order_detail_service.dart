@@ -28,12 +28,12 @@ class OrderDetailService {
   }
 
   Future<List<AgentServiceAlert>> getServiceAlerts(int idnbr) async {
-    final resp =
-        await _dio.get<dynamic>('/orderops/agent-orders/$idnbr/service-alerts');
+    final resp = await _dio.get<dynamic>('/orderops/service-alerts');
     final list = resp.data is List
         ? resp.data as List
         : ((resp.data as Map?))?['results'] as List? ?? [];
     return list
+        .where((e) => (e as Map)['idnbr'] == idnbr)
         .map((e) => AgentServiceAlert.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
@@ -88,7 +88,20 @@ class OrderDetailService {
   }
 
   Future<void> deleteTask(int idnbr, int taskId) async {
-    await _dio.delete('/orderops/agent-orders/$idnbr/tasks/$taskId');
+    await _dio.delete('/orderops/tasks/$taskId');
+  }
+
+  Future<List<AgentOrderService>> getOrderServices(int idnbr) async {
+    final resp = await _dio.get<dynamic>(
+      '/orderops/agent-orders/$idnbr/services',
+    );
+    final list = resp.data is Map
+        ? ((resp.data as Map)['results'] as List? ?? [])
+        : (resp.data as List? ?? []);
+    return list
+        .map((e) =>
+            AgentOrderService.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
   Future<void> addManualService(int idnbr, Map<String, dynamic> data) async {
@@ -109,7 +122,7 @@ class OrderDetailService {
 
   Future<List<Map<String, dynamic>>> searchCatalogServices(String q) async {
     final resp = await _dio.get<dynamic>(
-      '/orderops/catalog-services/',
+      '/orderops/catalog/services',
       queryParameters: {'q': q},
     );
     final list = resp.data is List

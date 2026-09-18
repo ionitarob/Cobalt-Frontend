@@ -80,6 +80,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final estado = detail.agentOrder.estado;
     final family = detail.agentOrder.family ?? '';
     final inExecution = estado.contains('3');
+    final hasLines = (detail.sourceOrder?['lines'] as List?)?.isNotEmpty == true;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,14 +93,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 HeaderSection(controller: _ctrl),
-                const SizedBox(height: 12),
-                LinesSection(controller: _ctrl),
-                const SizedBox(height: 12),
+                if (hasLines) ...[
+                  const SizedBox(height: 20),
+                  _sectionLabel(ct, 'LÍNEAS DEL PEDIDO'),
+                  LinesSection(controller: _ctrl),
+                ],
+                const SizedBox(height: 20),
                 ServicesSection(controller: _ctrl),
-                const SizedBox(height: 12),
-                ObservationsSection(controller: _ctrl),
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 TasksSection(controller: _ctrl),
+                const SizedBox(height: 20),
+                ObservationsSection(controller: _ctrl),
               ],
             ),
           ),
@@ -122,6 +126,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final estado = detail.agentOrder.estado;
     final family = detail.agentOrder.family ?? '';
     final inExecution = estado.contains('3');
+    final hasLines = (detail.sourceOrder?['lines'] as List?)?.isNotEmpty == true;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -129,23 +134,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HeaderSection(controller: _ctrl),
-          const SizedBox(height: 12),
-          LinesSection(controller: _ctrl),
-          const SizedBox(height: 12),
+          if (hasLines) ...[
+            const SizedBox(height: 20),
+            _sectionLabel(ct, 'LÍNEAS DEL PEDIDO'),
+            LinesSection(controller: _ctrl),
+          ],
+          const SizedBox(height: 20),
           ServicesSection(controller: _ctrl),
-          const SizedBox(height: 12),
-          ObservationsSection(controller: _ctrl),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           TasksSection(controller: _ctrl),
+          const SizedBox(height: 20),
+          ObservationsSection(controller: _ctrl),
           if (inExecution && family.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             _buildFamilyPanel(context, ct, family),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          _sectionLabel(ct, 'DOCUMENTACIÓN'),
           QualitySection(controller: _ctrl),
           const SizedBox(height: 12),
           FilesSection(controller: _ctrl),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           LogSection(controller: _ctrl),
         ],
       ),
@@ -160,11 +169,35 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _sectionLabel(ct, 'DOCUMENTACIÓN'),
           QualitySection(controller: _ctrl),
           const SizedBox(height: 12),
           FilesSection(controller: _ctrl),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           LogSection(controller: _ctrl),
+        ],
+      ),
+    );
+  }
+
+  // ── Section label ─────────────────────────────────────────────────────────
+
+  Widget _sectionLabel(CobaltPalette ct, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              color: ct.textHint,
+              letterSpacing: 1.3,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Divider(height: 1, color: ct.border)),
         ],
       ),
     );

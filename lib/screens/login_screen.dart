@@ -78,7 +78,9 @@ class _MacOSLoginState extends State<_MacOSLogin> {
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final msg = (e.response?.data as Map?)?['error'] as String?
+      final data = e.response?.data;
+      final msg = (data is Map ? data['error'] as String? : null)
+          ?? (data is String && data.length < 200 ? data : null)
           ?? 'Error de conexión. Inténtalo de nuevo.';
       if (!mounted) return;
       setState(() { _error = msg; _loading = false; });
@@ -856,7 +858,9 @@ class _IOSLoginState extends State<_IOSLogin> {
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final msg = (e.response?.data as Map?)?['error'] as String?
+      final data = e.response?.data;
+      final msg = (data is Map ? data['error'] as String? : null)
+          ?? (data is String && data.length < 200 ? data : null)
           ?? 'Error de conexión. Inténtalo de nuevo.';
       if (!mounted) return;
       setState(() { _error = msg; _loading = false; });
@@ -1104,7 +1108,9 @@ class _WindowsLoginState extends State<_WindowsLogin> {
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final msg = (e.response?.data as Map?)?['error'] as String?
+      final data = e.response?.data;
+      final msg = (data is Map ? data['error'] as String? : null)
+          ?? (data is String && data.length < 200 ? data : null)
           ?? 'Error de conexión. Inténtalo de nuevo.';
       if (!mounted) return;
       setState(() { _error = msg; _loading = false; });
@@ -1237,7 +1243,9 @@ class _AndroidLoginState extends State<_AndroidLogin> {
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final msg = (e.response?.data as Map?)?['error'] as String?
+      final data = e.response?.data;
+      final msg = (data is Map ? data['error'] as String? : null)
+          ?? (data is String && data.length < 200 ? data : null)
           ?? 'Error de conexión. Inténtalo de nuevo.';
       if (!mounted) return;
       setState(() { _error = msg; _loading = false; });

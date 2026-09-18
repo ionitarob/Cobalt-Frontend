@@ -29,75 +29,134 @@ class _HeaderSectionState extends State<HeaderSection> {
   Widget build(BuildContext context) {
     if (_ctrl.detail == null) return const SizedBox.shrink();
     final ct = context.ct;
-    return Column(
+    final order = _ctrl.detail!.agentOrder;
+    final statusColor = StatusBadge.colorFor(order.estado);
+    final fmt = DateFormat('dd/MM/yy HH:mm');
+    String fmtDt(DateTime? dt) => dt != null ? fmt.format(dt) : '—';
+
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildOrderInfoCard(ct),
+        // Identity row
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                order.customer,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: ct.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              order.orderNbr,
+              style: const TextStyle(
+                fontSize: 13,
+                color: CobaltColors.cobaltLight,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Status, priority, family, assignee, project
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            StatusBadge(estado: order.estado),
+            PrioridadBadge(prioridad: order.prioridad),
+            _familiaChip(ct, order),
+            _assignadoChip(ct, order),
+            _proyectoChip(ct, order),
+          ],
+        ),
+
         const SizedBox(height: 12),
-        _buildKpiCard(ct),
-        const SizedBox(height: 12),
-        _buildWorkflowCard(ct),
+        Divider(height: 1, color: ct.border),
+        const SizedBox(height: 10),
+
+        // Timestamps + workflow actions
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _tsChip(ct, 'Recibida', fmtDt(order.orderDate)),
+                _tsChip(ct, 'Completada', fmtDt(order.completedAt)),
+                if (order.stopReason != null && order.stopReason!.isNotEmpty)
+                  Tooltip(
+                    message: order.stopReason!,
+                    child: _tsChip(
+                      ct,
+                      'Motivo parada',
+                      order.stopReason!.length > 25
+                          ? '${order.stopReason!.substring(0, 25)}…'
+                          : order.stopReason!,
+                    ),
+                  ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ..._buildActions(ct, order),
+                if (_ctrl.isPrivileged) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: Icon(Icons.edit_outlined, size: 16, color: ct.textHint),
+                    tooltip: 'Cambiar estado (admin)',
+                    onPressed: _showForceEstadoDialog,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
       ],
     );
-  }
 
-  // ─── Card 1: Información de la orden ───────────────────────────────────────
-
-  Widget _buildOrderInfoCard(CobaltPalette ct) {
-    final order = _ctrl.detail!.agentOrder;
-    return _card(
-      ct,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    // Flutter requires uniform border colors when borderRadius is set.
+    // Workaround: uniform outer border + inner Row with a colored left strip.
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: ct.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ct.border),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(7),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(width: 3, color: statusColor),
               Expanded(
-                child: Text(
-                  order.customer,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: ct.textPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                order.orderNbr,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: CobaltColors.cobaltLight,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: content,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              StatusBadge(estado: order.estado),
-              PrioridadBadge(prioridad: order.prioridad),
-              _familiaChip(ct, order),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _assignadoChip(ct, order),
-              _proyectoChip(ct, order),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
+
+  // ─── Chips ─────────────────────────────────────────────────────────────────
 
   Widget _familiaChip(CobaltPalette ct, AgentOrder order) {
     final label = order.subfamilies.isNotEmpty
@@ -202,36 +261,6 @@ class _HeaderSectionState extends State<HeaderSection> {
     );
   }
 
-  // ─── Card 2: KPI timestamps ────────────────────────────────────────────────
-
-  Widget _buildKpiCard(CobaltPalette ct) {
-    final order = _ctrl.detail!.agentOrder;
-    final fmt = DateFormat('dd/MM/yy HH:mm');
-    String fmtDt(DateTime? dt) => dt != null ? fmt.format(dt) : '—';
-
-    final chips = <Widget>[
-      _tsChip(ct, 'Recibida', fmtDt(order.orderDate)),
-      _tsChip(ct, 'Completada', fmtDt(order.completedAt)),
-    ];
-
-    if (order.stopReason != null && order.stopReason!.isNotEmpty) {
-      final truncated = order.stopReason!.length > 30
-          ? '${order.stopReason!.substring(0, 30)}…'
-          : order.stopReason!;
-      chips.add(
-        Tooltip(
-          message: order.stopReason!,
-          child: _tsChip(ct, 'Motivo parada', truncated),
-        ),
-      );
-    }
-
-    return _card(
-      ct,
-      child: Wrap(spacing: 16, runSpacing: 10, children: chips),
-    );
-  }
-
   Widget _tsChip(CobaltPalette ct, String label, String value) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -251,12 +280,12 @@ class _HeaderSectionState extends State<HeaderSection> {
     );
   }
 
-  // ─── Card 3: Acciones de flujo ─────────────────────────────────────────────
+  // ─── Workflow actions ───────────────────────────────────────────────────────
 
-  Widget _buildWorkflowCard(CobaltPalette ct) {
-    final order = _ctrl.detail!.agentOrder;
+  List<Widget> _buildActions(CobaltPalette ct, AgentOrder order) {
     final estado = order.estado;
     final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final actions = <Widget>[];
 
     FilledButton filledBtn(String label, VoidCallback onTap, Color bg) =>
         FilledButton(
@@ -291,17 +320,12 @@ class _HeaderSectionState extends State<HeaderSection> {
       );
     }
 
-    final actions = <Widget>[];
-
     if (estado.contains('1')) {
       actions.add(scaled(
         pressed: _pressedRecepcionar,
         setPressed: (v) => _pressedRecepcionar = v,
-        child: filledBtn(
-          'Recepcionar',
-          () => _ctrl.updateEstado('2'),
-          StatusBadge.colorFor('1'),
-        ),
+        child: filledBtn('Recepcionar', () => _ctrl.updateEstado('2'),
+            StatusBadge.colorFor('1')),
       ));
     }
 
@@ -309,11 +333,8 @@ class _HeaderSectionState extends State<HeaderSection> {
       actions.add(scaled(
         pressed: _pressedComenzar,
         setPressed: (v) => _pressedComenzar = v,
-        child: filledBtn(
-          'Comenzar',
-          () => _ctrl.updateEstado('3'),
-          StatusBadge.colorFor('2'),
-        ),
+        child: filledBtn('Comenzar', () => _ctrl.updateEstado('3'),
+            StatusBadge.colorFor('2')),
       ));
     }
 
@@ -341,11 +362,8 @@ class _HeaderSectionState extends State<HeaderSection> {
         scaled(
           pressed: _pressedFinalizar,
           setPressed: (v) => _pressedFinalizar = v,
-          child: filledBtn(
-            'Finalizar',
-            _handleFinalizar,
-            StatusBadge.colorFor('5'),
-          ),
+          child: filledBtn('Finalizar', _handleFinalizar,
+              StatusBadge.colorFor('5')),
         ),
       ]);
     }
@@ -354,75 +372,31 @@ class _HeaderSectionState extends State<HeaderSection> {
       actions.add(scaled(
         pressed: _pressedReanudar,
         setPressed: (v) => _pressedReanudar = v,
-        child: filledBtn(
-          'Reanudar',
-          () => _ctrl.updateEstado('3'),
-          StatusBadge.colorFor('3'),
-        ),
+        child: filledBtn('Reanudar', () => _ctrl.updateEstado('3'),
+            StatusBadge.colorFor('3')),
       ));
     }
 
     if (estado.contains('5') || estado.contains('6')) {
-      actions.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check_circle_rounded,
-              size: 16,
-              color: StatusBadge.colorFor('5'),
+      actions.add(Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle_rounded,
+              size: 15, color: StatusBadge.colorFor('5')),
+          const SizedBox(width: 5),
+          Text(
+            'Completada',
+            style: TextStyle(
+              fontSize: 12,
+              color: ct.textSecondary,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 6),
-            Text(
-              order.completedAt != null
-                  ? 'Completada · ${DateFormat('dd/MM/yy HH:mm').format(order.completedAt!)}'
-                  : 'Completada',
-              style: TextStyle(
-                fontSize: 13,
-                color: ct.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ));
     }
 
-    return _card(
-      ct,
-      child: Row(
-        children: [
-          Expanded(
-            child: Wrap(spacing: 8, runSpacing: 8, children: actions),
-          ),
-          if (_ctrl.isPrivileged) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(Icons.edit_outlined, size: 16, color: ct.textHint),
-              tooltip: 'Cambiar estado (admin)',
-              onPressed: _showForceEstadoDialog,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ─── Card shell ────────────────────────────────────────────────────────────
-
-  Widget _card(CobaltPalette ct, {required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: ct.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ct.border),
-      ),
-      child: child,
-    );
+    return actions;
   }
 
   // ─── Dialogs ───────────────────────────────────────────────────────────────
@@ -524,10 +498,7 @@ class _HeaderSectionState extends State<HeaderSection> {
                         if (i == 0) {
                           return ListTile(
                             dense: true,
-                            leading: const Icon(
-                              Icons.person_off_outlined,
-                              size: 18,
-                            ),
+                            leading: const Icon(Icons.person_off_outlined, size: 18),
                             title: const Text('Sin asignar'),
                             onTap: () {
                               Navigator.of(ctx).pop();
@@ -544,10 +515,7 @@ class _HeaderSectionState extends State<HeaderSection> {
                           dense: true,
                           title: Text(name),
                           subtitle: username.isNotEmpty
-                              ? Text(
-                                  username,
-                                  style: const TextStyle(fontSize: 11),
-                                )
+                              ? Text(username, style: const TextStyle(fontSize: 11))
                               : null,
                           onTap: () {
                             Navigator.of(ctx).pop();

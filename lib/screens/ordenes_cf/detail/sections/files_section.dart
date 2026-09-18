@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -205,10 +209,56 @@ class _PhotoTileState extends State<_PhotoTile> {
     return '$trimmedBase$normalizedPath';
   }
 
-  void _onTap(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Descarga disponible próximamente')),
-    );
+  Future<Uint8List?> _downloadBytes(BuildContext context) async {
+    try {
+      final resp = await ApiClient.instance.dio.get<List<int>>(
+        _resolvedUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Uint8List.fromList(resp.data!);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al descargar: $e')),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _onTap(BuildContext context) async {
+    final bytes = await _downloadBytes(context);
+    if (bytes == null || !context.mounted) return;
+
+    if (_isImage) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _ImageLightbox(
+          bytes: bytes,
+          fileName: widget.photo.fileName,
+        ),
+      );
+    } else {
+      // Save to temp dir and open with OS
+      try {
+        final tmpPath =
+            '${Directory.systemTemp.path}/${widget.photo.fileName}';
+        await File(tmpPath).writeAsBytes(bytes);
+        if (Platform.isMacOS) {
+          await Process.run('open', [tmpPath]);
+        } else if (Platform.isWindows) {
+          await Process.run('cmd', ['/c', 'start', '', tmpPath]);
+        } else if (Platform.isLinux) {
+          await Process.run('xdg-open', [tmpPath]);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No se pudo abrir el archivo: $e')),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -421,6 +471,43 @@ class _DeleteButton extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.close, color: Colors.white, size: 13),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+
+class _ImageLightbox extends StatelessWidget {
+  const _ImageLightbox({required this.bytes, required this.fileName});
+
+  final Uint8List bytes;
+  final String fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.black87,
+      insetPadding: const EdgeInsets.all(16),
+      child: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Image.memory(bytes, fit: BoxFit.contain),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4),
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white70),
+              onPressed: () => Navigator.of(context).pop(),
+              tooltip: 'Cerrar',
+            ),
+          ),
+        ],
       ),
     );
   }

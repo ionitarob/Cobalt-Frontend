@@ -31,10 +31,7 @@ class TasksService {
   }
 
   Future<void> toggleOrderTask(int idnbr, int taskId, bool done) async {
-    await _dio.patch(
-      '/orderops/agent-orders/$idnbr/tasks/$taskId',
-      data: {'done': done},
-    );
+    await _dio.post('/orderops/tasks/$taskId/toggle');
   }
 
   Future<void> toggleAprovTask(int aprovId, int taskId, bool done) async {

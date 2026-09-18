@@ -24,10 +24,19 @@ class _LogEntry {
   });
 }
 
-class LogSection extends StatelessWidget {
+class LogSection extends StatefulWidget {
   const LogSection({super.key, required this.controller});
 
   final OrderDetailController controller;
+
+  @override
+  State<LogSection> createState() => _LogSectionState();
+}
+
+class _LogSectionState extends State<LogSection> {
+  bool _expanded = false;
+
+  OrderDetailController get controller => widget.controller;
 
   List<_LogEntry> _buildEntries() {
     final detail = controller.detail;
@@ -96,17 +105,48 @@ class LogSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'LOG DEL SISTEMA',
-          style: TextStyle(
-            color: ct.textHint,
-            fontSize: 9.5,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w600,
+        // Collapsible header row
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Text(
+                  'HISTORIAL DEL SISTEMA',
+                  style: TextStyle(
+                    color: ct.textHint,
+                    fontSize: 9.5,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (entries.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '${entries.length}',
+                    style: TextStyle(
+                      color: ct.textHint,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 16,
+                  color: ct.textHint,
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 6),
-        Container(
+        if (!_expanded) const SizedBox.shrink(),
+        if (_expanded) ...[
+          const SizedBox(height: 6),
+          Container(
           height: 34,
           color: ct.surface,
           child: Row(
@@ -172,6 +212,7 @@ class LogSection extends StatelessWidget {
               child: Text('Ver todos (${entries.length})'),
             ),
         ],
+        ], // end if (_expanded)
       ],
     );
   }

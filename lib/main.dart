@@ -69,7 +69,9 @@ class CobaltApp extends StatelessWidget {
             ),
             builder: (ctx, child) => Theme(
               data: _materialTheme(palette, isDark),
-              child: child ?? const SizedBox.shrink(),
+              child: ScaffoldMessenger(
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           );
         },
@@ -101,7 +103,9 @@ class CobaltApp extends StatelessWidget {
             themeMode: themeMode,
             builder: (ctx, child) => Theme(
               data: _materialTheme(palette, isDark),
-              child: child ?? const SizedBox.shrink(),
+              child: ScaffoldMessenger(
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           );
         },

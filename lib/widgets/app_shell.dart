@@ -28,31 +28,7 @@ class AppShell extends StatelessWidget {
             child: Column(
               children: [
                 _TopBar(location: location),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOut,
-                      ),
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.012),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOut,
-                        )),
-                        child: child,
-                      ),
-                    ),
-                    child: KeyedSubtree(
-                      key: ValueKey(location),
-                      child: child,
-                    ),
-                  ),
-                ),
+                Expanded(child: child),
               ],
             ),
           ),

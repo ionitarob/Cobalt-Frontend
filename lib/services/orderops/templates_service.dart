@@ -66,8 +66,7 @@ class TemplatesService {
 
   Future<List<AgentOrderTask>> applyTemplate(int templateId, int idnbr) async {
     final resp = await _dio.post<dynamic>(
-      '/orderops/checklist-templates/$templateId/apply',
-      data: {'idnbr': idnbr},
+      '/orderops/checklist-templates/$templateId/apply/$idnbr',
     );
     final list = (resp.data as Map?)?['tasks'] as List? ?? [];
     return list

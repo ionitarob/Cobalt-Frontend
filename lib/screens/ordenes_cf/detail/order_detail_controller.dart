@@ -52,6 +52,17 @@ class OrderDetailController extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
     }
+    // Services are fetched separately — a failure here must not block the rest of the view.
+    if (_detail != null) {
+      try {
+        final fetchedServices = await _svc.getOrderServices(idnbr);
+        if (fetchedServices.isNotEmpty) {
+          _detail = _withServices(fetchedServices);
+        }
+      } catch (_) {
+        // Keep whatever services came from getOrderDetail (likely empty).
+      }
+    }
     _loading = false;
     notifyListeners();
   }
@@ -328,7 +339,8 @@ class OrderDetailController extends ChangeNotifier {
     notifyListeners();
     try {
       await _svc.addManualService(idnbr, data);
-      _detail = await _svc.getOrderDetail(idnbr);
+      final services = await _svc.getOrderServices(idnbr);
+      _detail = _withServices(services);
     } catch (e) {
       _error = e.toString();
     }
@@ -345,6 +357,8 @@ class OrderDetailController extends ChangeNotifier {
     notifyListeners();
     try {
       await _svc.removeManualService(idnbr, manualId);
+      final services = await _svc.getOrderServices(idnbr);
+      _detail = _withServices(services);
     } catch (e) {
       _detail = _withServices(prev);
       _error = e.toString();

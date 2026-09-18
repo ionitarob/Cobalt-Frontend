@@ -10,6 +10,26 @@ import '../core/nav_items.dart';
 import '../core/auth_service.dart';
 import '../widgets/app_shell.dart';
 
+CustomTransitionPage<void> _fadePage(LocalKey? key, Widget child) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 140),
+    transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+      final slide = Tween<Offset>(
+        begin: const Offset(0, 0.012),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+      return FadeTransition(
+        opacity: fade,
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
@@ -68,60 +88,48 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (ctx, st) {
             final raw = st.pathParameters['idnbr'] ?? '0';
             final idnbr = int.tryParse(raw) ?? 0;
-            return NoTransitionPage(
-              key: st.pageKey,
-              child: OrderDetailScreen(idnbr: idnbr),
-            );
+            return _fadePage(st.pageKey, OrderDetailScreen(idnbr: idnbr));
           },
         ),
         GoRoute(
           path: '/home/ordenes-cf',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            key: st.pageKey,
-            child: const OrdersScreen(),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(st.pageKey, const OrdersScreen()),
         ),
         GoRoute(
           path: '/home/amazon',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[1]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[1])),
         ),
         GoRoute(
           path: '/home/analisis',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[2]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[2])),
         ),
         GoRoute(
           path: '/home/xiaomi',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[3]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[3])),
         ),
         GoRoute(
           path: '/home/revision-tv',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[4]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[4])),
         ),
         GoRoute(
           path: '/home/servidores',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[5]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[5])),
         ),
         GoRoute(
           path: '/home/sentinel',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[6]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[6])),
         ),
         GoRoute(
           path: '/home/bartender',
-          pageBuilder: (ctx, st) => NoTransitionPage(
-            child: AreaPlaceholder.fromItem(kNavItems[7]),
-          ),
+          pageBuilder: (ctx, st) =>
+              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[7])),
         ),
       ],
     ),
