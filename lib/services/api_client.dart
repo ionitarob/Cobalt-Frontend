@@ -1,14 +1,12 @@
 import 'package:dio/dio.dart';
+import '../core/flavor.dart';
 
 class ApiClient {
   final Dio _dio;
 
   ApiClient({String? baseUrl})
       : _dio = Dio(BaseOptions(
-          baseUrl: baseUrl ?? const String.fromEnvironment(
-            'API_BASE_URL',
-            defaultValue: 'http://localhost:8000',
-          ),
+          baseUrl: baseUrl ?? kApiBaseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 15),
           headers: {'Content-Type': 'application/json'},

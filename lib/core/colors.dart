@@ -1,5 +1,7 @@
 import 'package:flutter/painting.dart';
 
+// Theme-sensitive colors → use context.ct (see cobalt_theme.dart)
+// Brand colors below are constant in both modes:
 abstract final class CobaltColors {
   static const Color cobalt = Color(0xFF0047AB);
   static const Color cobaltLight = Color(0xFF1A6FDB);

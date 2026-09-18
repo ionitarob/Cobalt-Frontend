@@ -3,22 +3,23 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 
-import '../core/colors.dart';
+import '../core/cobalt_theme.dart';
 
 class HomePlaceholder extends StatelessWidget {
   const HomePlaceholder({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final ct = context.ct;
     if (Platform.isIOS || Platform.isMacOS) {
-      return const CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
+      return CupertinoPageScaffold(
+        navigationBar: const CupertinoNavigationBar(
           middle: Text('ConfigTool Cobalt'),
         ),
         child: Center(
           child: Text(
             'Dashboard — coming soon',
-            style: TextStyle(color: CobaltColors.textSecondary),
+            style: TextStyle(color: ct.textSecondary),
           ),
         ),
       );
@@ -29,26 +30,29 @@ class HomePlaceholder extends StatelessWidget {
           header: const fluent.PageHeader(
             title: Text('ConfigTool Cobalt'),
           ),
-          content: const Center(
-            child: Text('Dashboard — coming soon'),
+          content: Center(
+            child: Text(
+              'Dashboard — coming soon',
+              style: TextStyle(color: ct.textSecondary),
+            ),
           ),
         ),
       );
     }
     return Scaffold(
-      backgroundColor: CobaltColors.background,
+      backgroundColor: ct.background,
       appBar: AppBar(
-        backgroundColor: CobaltColors.surface,
-        title: const Text(
+        backgroundColor: ct.surface,
+        title: Text(
           'ConfigTool Cobalt',
-          style: TextStyle(color: CobaltColors.textPrimary),
+          style: TextStyle(color: ct.textPrimary),
         ),
-        iconTheme: const IconThemeData(color: CobaltColors.textPrimary),
+        iconTheme: IconThemeData(color: ct.textPrimary),
       ),
-      body: const Center(
+      body: Center(
         child: Text(
           'Dashboard — coming soon',
-          style: TextStyle(color: CobaltColors.textSecondary),
+          style: TextStyle(color: ct.textSecondary),
         ),
       ),
     );

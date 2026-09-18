@@ -1,14 +1,6 @@
 // Application-level settings for the Runner target.
-//
-// This may be replaced with something auto-generated from metadata (e.g., pubspec.yaml) in the
-// future. If not, the values below would default to using the project name when this becomes a
-// 'flutter create' template.
+// BUNDLE_ID_SUFFIX is injected by Debug.xcconfig (.beta) or left empty for prod release.
 
-// The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = configtool_cobalt
-
-// The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.maglan.configtoolCobalt
-
-// The copyright displayed in application information
+PRODUCT_NAME = ConfigTool Cobalt
+PRODUCT_BUNDLE_IDENTIFIER = com.maglan.configtoolCobalt$(BUNDLE_ID_SUFFIX)
 PRODUCT_COPYRIGHT = Copyright © 2026 com.maglan. All rights reserved.

@@ -1,2 +1,6 @@
 #include "../../Flutter/Flutter-Debug.xcconfig"
 #include "Warnings.xcconfig"
+
+// Debug is always Beta — different bundle ID so Beta and Prod can coexist on the same Mac
+BUNDLE_ID_SUFFIX = .beta
+PRODUCT_NAME = Cobalt Beta

@@ -1,0 +1,5 @@
+{
+  "FLAVOR": "prod",
+  "APP_DISPLAY_NAME": "ConfigTool Cobalt",
+  "API_BASE_URL": "http://cobalt-production.eba-2efgir7w.eu-west-3.elasticbeanstalk.com"
+}
