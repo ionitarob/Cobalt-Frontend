@@ -406,6 +406,18 @@ class _ServiceRowEntrance extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 
+/// Returns the price-state colour for a service that has catalog data.
+/// Mirrors Granite's _getPriceColor logic exactly.
+/// Returns null when theoreticalPvd == 0 (no catalog match → no colour).
+Color? _priceStateColor(AgentOrderService svc) {
+  if (svc.theoreticalPvd <= 0) return null;
+  if (svc.orderUnitPrice < svc.coste - 0.05) return const Color(0xFFFF5252); // red
+  if ((svc.orderUnitPrice - svc.theoreticalPvd).abs() <= 0.05) return const Color(0xFF69F0AE); // green
+  return const Color(0xFFFFB020); // yellow
+}
+
+// ---------------------------------------------------------------------------
+
 class _ServiceRow extends StatelessWidget {
   const _ServiceRow({
     required this.service,
@@ -424,81 +436,113 @@ class _ServiceRow extends StatelessWidget {
     final hasRightCol = controller.canViewFinancials ||
         (service.isManual && controller.isPrivileged);
 
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    // Colour indicator: alert status overrides price-state colour.
+    Color? stateColor = _priceStateColor(service);
+    if (alert != null) {
+      if (alert!.status == 'validated') {
+        stateColor = const Color(0xFF69F0AE);
+      } else if (alert!.status == 'reported') {
+        stateColor = const Color(0xFF448AFF);
+      } else if (alert!.colorState != 'green') {
+        stateColor = _alertColor(alert!.colorState);
+      }
+    }
+
+    return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // SKU
-          SizedBox(
-            width: 130,
-            child: Text(
-              service.skuConfig ?? '—',
-              style: TextStyle(
-                color: CobaltColors.cobaltLight,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                height: 1.3,
+          // Left colour bar — only visible when this line has catalog data.
+          Container(
+            width: 3,
+            decoration: BoxDecoration(
+              color: stateColor ?? Colors.transparent,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(2),
+                bottomLeft: Radius.circular(2),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
-          // Description + inline badges
+          // Content
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  service.description,
-                  style: TextStyle(
-                      color: ct.textPrimary,
-                      fontSize: 12,
-                      height: 1.35),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (service.isManual || alert != null) ...[
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      if (service.isManual) _ManualBadge(ct: ct),
-                      if (service.isManual && alert != null)
-                        const SizedBox(width: 4),
-                      if (alert != null)
-                        _AlertBadge(
-                          alert: alert!,
-                          controller: controller,
-                        ),
-                    ],
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // SKU
+                  SizedBox(
+                    width: 130,
+                    child: Text(
+                      service.skuConfig ?? '—',
+                      style: TextStyle(
+                        color: stateColor ?? CobaltColors.cobaltLight,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        height: 1.3,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  // Description + inline badges
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          service.description,
+                          style: TextStyle(
+                              color: ct.textPrimary,
+                              fontSize: 12,
+                              height: 1.35),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (service.isManual || alert != null) ...[
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
+                              if (service.isManual) _ManualBadge(ct: ct),
+                              if (service.isManual && alert != null)
+                                const SizedBox(width: 4),
+                              if (alert != null)
+                                _AlertBadge(
+                                  alert: alert!,
+                                  controller: controller,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Right column: financials + delete
+                  if (hasRightCol) ...[
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (controller.canViewFinancials)
+                          _FinancialInfo(service: service, ct: ct),
+                        if (service.isManual && controller.isPrivileged) ...[
+                          if (controller.canViewFinancials)
+                            const SizedBox(height: 2),
+                          _DeleteButton(
+                            ct: ct,
+                            onConfirm: () => controller
+                                .removeManualService(service.manualId!),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-          // Right column: financials + delete
-          if (hasRightCol) ...[
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (controller.canViewFinancials)
-                  _FinancialInfo(service: service, ct: ct),
-                if (service.isManual && controller.isPrivileged) ...[
-                  if (controller.canViewFinancials)
-                    const SizedBox(height: 2),
-                  _DeleteButton(
-                    ct: ct,
-                    onConfirm: () => controller
-                        .removeManualService(service.manualId!),
-                  ),
-                ],
-              ],
-            ),
-          ],
         ],
       ),
     );
