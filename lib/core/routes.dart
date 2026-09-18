@@ -68,13 +68,17 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (ctx, st) {
             final raw = st.pathParameters['idnbr'] ?? '0';
             final idnbr = int.tryParse(raw) ?? 0;
-            return NoTransitionPage(child: OrderDetailScreen(idnbr: idnbr));
+            return NoTransitionPage(
+              key: st.pageKey,
+              child: OrderDetailScreen(idnbr: idnbr),
+            );
           },
         ),
         GoRoute(
           path: '/home/ordenes-cf',
-          pageBuilder: (ctx, st) => const NoTransitionPage(
-            child: OrdersScreen(),
+          pageBuilder: (ctx, st) => NoTransitionPage(
+            key: st.pageKey,
+            child: const OrdersScreen(),
           ),
         ),
         GoRoute(

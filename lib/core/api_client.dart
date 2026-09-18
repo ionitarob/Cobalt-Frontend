@@ -3,7 +3,7 @@ import 'auth_service.dart';
 
 const _kBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://cobalt-staging.eba-bya3rqt2.eu-west-3.elasticbeanstalk.com',
+  defaultValue: 'http://cobalt-staging.eba-2efgir7w.eu-west-3.elasticbeanstalk.com',
 );
 
 class ApiClient {
