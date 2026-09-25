@@ -6,6 +6,8 @@ import '../screens/login_screen.dart';
 import '../screens/areas/area_placeholder.dart';
 import '../screens/ordenes_cf/orders_screen.dart';
 import '../screens/ordenes_cf/detail/order_detail_screen.dart';
+import '../screens/xiaomi_serials/xiaomi_serials_hub.dart';
+import '../screens/xiaomi_serials/serial_change/serial_change_screen.dart';
 import '../core/nav_items.dart';
 import '../core/auth_service.dart';
 import '../widgets/app_shell.dart';
@@ -109,7 +111,12 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/home/xiaomi',
           pageBuilder: (ctx, st) =>
-              _fadePage(null, AreaPlaceholder.fromItem(kNavItems[3])),
+              _fadePage(st.pageKey, const XiaomiSerialsHub()),
+        ),
+        GoRoute(
+          path: '/home/xiaomi/cambio-serials',
+          pageBuilder: (ctx, st) =>
+              _fadePage(st.pageKey, const SerialChangeScreen()),
         ),
         GoRoute(
           path: '/home/revision-tv',

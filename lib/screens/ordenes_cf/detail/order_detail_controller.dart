@@ -118,6 +118,8 @@ class OrderDetailController extends ChangeNotifier {
         stopReason: stopReason,
       );
       _detail = await _svc.getOrderDetail(idnbr);
+      final svc = await _svc.getOrderServices(idnbr);
+      if (svc.isNotEmpty) _detail = _withServices(svc);
     } catch (e) {
       _error = e.toString();
     }

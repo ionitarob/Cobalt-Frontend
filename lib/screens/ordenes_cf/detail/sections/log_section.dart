@@ -34,7 +34,7 @@ class LogSection extends StatefulWidget {
 }
 
 class _LogSectionState extends State<LogSection> {
-  bool _expanded = false;
+  bool _expanded = true;
 
   OrderDetailController get controller => widget.controller;
 
