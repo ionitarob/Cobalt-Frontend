@@ -278,9 +278,27 @@ class _AppLogo extends StatelessWidget {
 
 // ─── Nav list ─────────────────────────────────────────────────────────────────
 
-class _NavList extends StatelessWidget {
+class _NavList extends StatefulWidget {
   final String location;
   const _NavList({required this.location});
+
+  @override
+  State<_NavList> createState() => _NavListState();
+}
+
+class _NavListState extends State<_NavList> {
+  final Set<String> _expanded = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-expand items whose children match the current location
+    for (final item in kNavItems) {
+      if (item.children.any((c) => widget.location.startsWith(c.route))) {
+        _expanded.add(item.route);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -295,19 +313,42 @@ class _NavList extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionHeader('PROYECTOS'),
-          ...proyectos.map((item) => _NavTile(
-                item: item,
-                active: location.startsWith(item.route),
-              )),
+          ...proyectos.expand((item) => _buildItem(item)),
           const SizedBox(height: 6),
           _SectionHeader('HERRAMIENTAS'),
-          ...herramientas.map((item) => _NavTile(
-                item: item,
-                active: location.startsWith(item.route),
-              )),
+          ...herramientas.expand((item) => _buildItem(item)),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildItem(NavItem item) {
+    final active = widget.location.startsWith(item.route);
+    if (item.children.isEmpty) {
+      return [_NavTile(item: item, active: active)];
+    }
+    final isExpanded = _expanded.contains(item.route);
+    return [
+      _NavTile(
+        item: item,
+        active: active,
+        hasChildren: true,
+        expanded: isExpanded,
+        onTap: () => setState(() {
+          if (isExpanded) {
+            _expanded.remove(item.route);
+          } else {
+            _expanded.add(item.route);
+          }
+        }),
+      ),
+      if (isExpanded)
+        ...item.children.map((child) => _NavSubItem(
+              label: child.label,
+              active: widget.location.startsWith(child.route),
+              onTap: () => context.go(child.route),
+            )),
+    ];
   }
 }
 
@@ -349,8 +390,17 @@ class _SectionHeader extends StatelessWidget {
 class _NavTile extends StatefulWidget {
   final NavItem item;
   final bool active;
+  final bool hasChildren;
+  final bool expanded;
+  final VoidCallback? onTap;
 
-  const _NavTile({required this.item, required this.active});
+  const _NavTile({
+    required this.item,
+    required this.active,
+    this.hasChildren = false,
+    this.expanded = false,
+    this.onTap,
+  });
 
   @override
   State<_NavTile> createState() => _NavTileState();
@@ -392,7 +442,11 @@ class _NavTileState extends State<_NavTile> {
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) {
           setState(() => _pressed = false);
-          context.go(widget.item.route);
+          if (widget.onTap != null) {
+            widget.onTap!();
+          } else {
+            context.go(widget.item.route);
+          }
         },
         onTapCancel: () => setState(() => _pressed = false),
         child: AnimatedScale(
@@ -472,8 +526,77 @@ class _NavTileState extends State<_NavTile> {
                             ),
                           ),
                         ),
+                        if (widget.hasChildren)
+                          AnimatedRotation(
+                            turns: widget.expanded ? 0.5 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(Icons.expand_more, size: 14, color: iconColor),
+                          ),
                       ],
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Sub-item (indented child of an expandable nav tile) ──────────────────────
+
+class _NavSubItem extends StatefulWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _NavSubItem({required this.label, required this.active, required this.onTap});
+  @override
+  State<_NavSubItem> createState() => _NavSubItemState();
+}
+
+class _NavSubItemState extends State<_NavSubItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ct = context.ct;
+    final color = widget.active
+        ? CobaltColors.cobaltLight
+        : _hovered
+            ? const Color(0xFFAAB5C3)
+            : ct.textHint;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: SizedBox(
+          height: 30,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 39, right: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 4, height: 4,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.active ? CobaltColors.cobaltLight : ct.border,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: color,
+                      fontWeight: widget.active ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

@@ -2,17 +2,25 @@ import 'package:flutter/material.dart';
 
 enum NavSection { proyectos, herramientas }
 
+class NavChild {
+  final String label;
+  final String route;
+  const NavChild({required this.label, required this.route});
+}
+
 class NavItem {
   final String label;
   final IconData icon;
   final String route;
   final NavSection section;
+  final List<NavChild> children;
 
   const NavItem({
     required this.label,
     required this.icon,
     required this.route,
     required this.section,
+    this.children = const [],
   });
 }
 
@@ -40,6 +48,10 @@ const List<NavItem> kNavItems = [
     icon: Icons.devices_outlined,
     route: '/home/xiaomi',
     section: NavSection.proyectos,
+    children: [
+      NavChild(label: 'Cambio de Serials', route: '/home/xiaomi/cambio-serials'),
+      NavChild(label: 'Historial Serials', route: '/home/xiaomi/historial-serials'),
+    ],
   ),
   NavItem(
     label: 'Revisión TV',

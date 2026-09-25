@@ -44,6 +44,12 @@ class XiaomiSerialsHub extends StatelessWidget {
                     subtitle: 'RMA — cambio de serial antiguo por nuevo',
                     onTap: () => context.push('/home/xiaomi/cambio-serials'),
                   ),
+                  _HubCard(
+                    icon: Icons.history_rounded,
+                    title: 'Historial Serials',
+                    subtitle: 'Buscar y consultar registros de cambio',
+                    onTap: () => context.push('/home/xiaomi/historial-serials'),
+                  ),
                 ],
               ),
             ],
