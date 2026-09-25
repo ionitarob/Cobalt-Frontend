@@ -4,7 +4,7 @@ const kFlavor = String.fromEnvironment('FLAVOR', defaultValue: 'beta');
 const kAppDisplayName = String.fromEnvironment('APP_DISPLAY_NAME', defaultValue: 'Cobalt Beta');
 const kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://cobalt-staging.eba-2efgir7w.eu-west-3.elasticbeanstalk.com',
+  defaultValue: 'http://cobalt-staging.eba-bya3rqt2.eu-west-3.elasticbeanstalk.com',
 );
 
 const kIsBeta = kFlavor == 'beta';

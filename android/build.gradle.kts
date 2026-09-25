@@ -22,11 +22,9 @@ subprojects {
 // Force all Android library subprojects (plugins) to use compileSdk 36
 // so transitive deps like flutter_plugin_android_lifecycle don't fail.
 subprojects {
-    afterEvaluate {
-        if (project.plugins.hasPlugin("com.android.library")) {
-            project.extensions.configure<com.android.build.gradle.LibraryExtension> {
-                compileSdk = 36
-            }
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.gradle.LibraryExtension> {
+            compileSdk = 36
         }
     }
 }
