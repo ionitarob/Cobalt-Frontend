@@ -7,7 +7,7 @@ class SerialHistoryService {
   static final instance = SerialHistoryService._();
   Dio get _dio => ApiClient.instance.dio;
 
-  Future<List<Map<String, dynamic>>> search({String? serial, String? nrOrden, String? nrBox, String? q, int limit = 500}) async {
+  Future<List<Map<String, dynamic>>> search({String? serial, String? nrOrden, String? nrBox, String? q, int limit = 2000}) async {
     final qp = <String, dynamic>{'limit': limit};
     if (serial != null && serial.isNotEmpty) qp['serial'] = serial;
     if (nrOrden != null && nrOrden.isNotEmpty) qp['nr_orden'] = nrOrden;
@@ -22,8 +22,11 @@ class SerialHistoryService {
     return ((r.data as Map)['results'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
-  Future<void> delete(int id) async {
-    await _dio.delete('/serials/sc/$id');
+  Future<int> delete(int id) async {
+    final r = await _dio.delete<dynamic>('/serials/sc/$id');
+    final data = r.data;
+    if (data is Map) return (data['deleted'] as int?) ?? 1;
+    return 1;
   }
 
   Future<void> update(int id, Map<String, dynamic> data) async {

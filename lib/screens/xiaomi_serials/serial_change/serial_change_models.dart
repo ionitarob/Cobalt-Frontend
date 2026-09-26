@@ -55,11 +55,11 @@ class SCPrinter {
 
 class SCMapping {
   final int? id;
-  final String oldSerial;
+  String oldSerial;
   final String newSerial;
   final DateTime scannedAt;
 
-  const SCMapping({this.id, required this.oldSerial, required this.newSerial, required this.scannedAt});
+  SCMapping({this.id, required this.oldSerial, required this.newSerial, required this.scannedAt});
 }
 
 class SCBoxSession {
@@ -78,6 +78,33 @@ class SCBoxSession {
   int get scannedCount => mappings.length;
   bool get isComplete => scannedCount >= units;
   String? get currentLabel => scannedCount < labels.length ? labels[scannedCount] : null;
+}
+
+/// Resume data extracted from existing server records.
+class SCResumeData {
+  final int existingCount;
+  final String? operador;
+  final String? sku;
+  final int? totalUnits;
+  final int? tipoId;
+  final String? tipoName;
+  final String? ean;
+  final int nextSequence;
+  final String? lastBox;
+  final DateTime? productionDate;
+
+  const SCResumeData({
+    required this.existingCount,
+    this.operador,
+    this.sku,
+    this.totalUnits,
+    this.tipoId,
+    this.tipoName,
+    this.ean,
+    required this.nextSequence,
+    this.lastBox,
+    this.productionDate,
+  });
 }
 
 enum SCStep { config, scan, summary, finish }

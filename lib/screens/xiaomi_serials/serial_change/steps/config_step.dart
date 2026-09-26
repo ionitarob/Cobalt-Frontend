@@ -17,13 +17,26 @@ class _ConfigStepState extends State<ConfigStep> {
   final _orderCtrl = TextEditingController();
   final _skuCtrl = TextEditingController();
   final _unitsCtrl = TextEditingController();
+  final _eanCtrl = TextEditingController();
+  final _seqCtrl = TextEditingController(text: '1');
 
   @override
   void dispose() {
     _orderCtrl.dispose();
     _skuCtrl.dispose();
     _unitsCtrl.dispose();
+    _eanCtrl.dispose();
+    _seqCtrl.dispose();
     super.dispose();
+  }
+
+  void _syncFields() {
+    setState(() {
+      _skuCtrl.text = c.sku;
+      _unitsCtrl.text = c.totalUnits > 0 ? c.totalUnits.toString() : '';
+      _eanCtrl.text = c.ean;
+      _seqCtrl.text = c.startSequence.toString();
+    });
   }
 
   SerialChangeController get c => widget.ctrl;
@@ -55,12 +68,50 @@ class _ConfigStepState extends State<ConfigStep> {
           ],
           _lbl(ct, 'No Orden'), const SizedBox(height: 6),
           _orderField(ct),
+          if (c.checkingOrder) ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: CobaltColors.cobaltLight)),
+              const SizedBox(width: 8),
+              Text('Comprobando orden...', style: TextStyle(fontSize: 12, color: ct.textHint)),
+            ]),
+          ],
+          if (c.resumeData != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF2ECC71).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Orden existente — ${c.resumeData!.existingCount} registros', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2ECC71))),
+                const SizedBox(height: 4),
+                Text('Continuará desde secuencia ${c.resumeData!.nextSequence}', style: TextStyle(fontSize: 12, color: ct.textSecondary)),
+                const SizedBox(height: 8),
+                SizedBox(height: 32, child: FilledButton(
+                  onPressed: () { c.applyResume(c.resumeData!); _syncFields(); },
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2ECC71), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+                  child: const Text('Aplicar y continuar', style: TextStyle(fontSize: 12)),
+                )),
+              ]),
+            ),
+          ],
           const SizedBox(height: 16),
           _lbl(ct, 'SKU'), const SizedBox(height: 6),
           _tf(ct, _skuCtrl, '12ABCD', (v) => c.sku = v),
           const SizedBox(height: 16),
-          _lbl(ct, 'Unidades totales'), const SizedBox(height: 6),
-          _tf(ct, _unitsCtrl, '500', (v) => c.totalUnits = int.tryParse(v) ?? 0, kb: TextInputType.number),
+          _lbl(ct, 'EAN (código barras)'), const SizedBox(height: 6),
+          _tf(ct, _eanCtrl, 'EAN-13 (opcional)', (v) => c.ean = v),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _lbl(ct, 'Unidades totales'), const SizedBox(height: 6),
+              _tf(ct, _unitsCtrl, '500', (v) => c.totalUnits = int.tryParse(v) ?? 0, kb: TextInputType.number),
+            ])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _lbl(ct, 'Secuencia inicio'), const SizedBox(height: 6),
+              _tf(ct, _seqCtrl, '1', (v) => c.startSequence = int.tryParse(v) ?? 1, kb: TextInputType.number),
+            ])),
+          ]),
           const SizedBox(height: 16),
           _lbl(ct, 'Fecha produccion'), const SizedBox(height: 6),
           _datePick(ct), const SizedBox(height: 32),
@@ -88,6 +139,13 @@ class _ConfigStepState extends State<ConfigStep> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     ),
     onChanged: (v) => c.orderNbr = v,
+    onSubmitted: (v) async {
+      c.orderNbr = v;
+      if (v.length >= 11) {
+        await c.checkOrderResume(v);
+        if (mounted) setState(() {});
+      }
+    },
   );
   Widget _opDrop(CobaltPalette ct) => _drop<SCOperator>(ct, c.operators, c.selectedOperator, (o) => o.name, (o) { if (o != null) c.selectOperator(o); });
 
