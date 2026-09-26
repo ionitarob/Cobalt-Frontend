@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -163,8 +164,13 @@ class _SerialHistoryScreenState extends State<SerialHistoryScreen> {
                     style: TextStyle(fontSize: 11, color: ct.textHint)),
                 ])),
               ]),
-              trailing: _iconBtn(Icons.delete_forever_rounded, 'Borrar orden',
-                () => _deleteOrder(ordKey, boxes), color: Colors.redAccent.withValues(alpha: 0.7)),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                _iconBtn(Icons.download_rounded, 'Exportar Excel',
+                  () => _exportOrder(ordKey), color: CobaltColors.cobaltLight),
+                const SizedBox(width: 4),
+                _iconBtn(Icons.delete_forever_rounded, 'Borrar orden',
+                  () => _deleteOrder(ordKey, boxes), color: Colors.redAccent.withValues(alpha: 0.7)),
+              ]),
               children: boxes.entries.map((e) => _buildBoxTile(ct, ordKey, e.key, e.value)).toList(),
             )),
         );
@@ -239,6 +245,26 @@ class _SerialHistoryScreenState extends State<SerialHistoryScreen> {
       child: Padding(padding: const EdgeInsets.all(4), child: Icon(icon, size: 16, color: color)));
 
   int? _rowId(Map<String, dynamic> r) => (r['id'] ?? r['ID']) as int?;
+
+  Future<void> _exportOrder(String ordKey) async {
+    try {
+      final bytes = await _svc.exportOrder(ordKey);
+      if (!mounted) return;
+      if (bytes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay datos para exportar')));
+        return;
+      }
+      // On mobile/desktop: save to temp and show path
+      final dir = Directory.systemTemp;
+      final file = File('${dir.path}/$ordKey.xlsx');
+      await file.writeAsBytes(bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exportado: ${file.path}')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error exportando: $e')));
+    }
+  }
 
   Future<void> _deleteRow(Map<String, dynamic> r) async {
     final ct = context.ct;
