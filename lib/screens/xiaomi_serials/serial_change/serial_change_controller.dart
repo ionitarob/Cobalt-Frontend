@@ -158,12 +158,23 @@ class SerialChangeController extends ChangeNotifier {
     } catch (e) { return 'Error: $e'; }
   }
 
+  /// Called by the UI when auto-print/SFTP completes.
+  /// Callbacks for the screen to hook into after box/order completion.
+  VoidCallback? onBoxCompleted;
+  VoidCallback? onOrderFinished;
+
   void _completeBox() {
     if (activeBox == null) return;
     for (final m in activeBox!.mappings) consumedLabels.add(m.newSerial);
     completedBoxes.add(activeBox!); activeBox = null;
-    step = pendingLabels.isEmpty ? SCStep.finish : SCStep.summary;
+    if (pendingLabels.isEmpty) {
+      step = SCStep.finish;
+    } else {
+      // Auto-advance to scan (skip summary — it's shown inline)
+      step = SCStep.scan;
+    }
     notifyListeners();
+    onBoxCompleted?.call();
   }
 
   void nextBox() { step = SCStep.scan; notifyListeners(); }

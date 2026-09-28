@@ -16,6 +16,13 @@ class _FinishStepState extends State<FinishStep> {
   String? _uploadResult;
 
   @override
+  void initState() {
+    super.initState();
+    // Auto-trigger SFTP upload when this step appears
+    WidgetsBinding.instance.addPostFrameCallback((_) => _upload());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ct = context.ct;
     final c = widget.ctrl;
