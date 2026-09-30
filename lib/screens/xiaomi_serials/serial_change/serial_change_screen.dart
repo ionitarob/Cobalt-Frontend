@@ -4,6 +4,7 @@ import '../../../core/cobalt_theme.dart';
 import '../../../core/colors.dart';
 import 'serial_change_controller.dart';
 import 'serial_change_models.dart';
+import 'serial_change_service.dart';
 import 'steps/config_step.dart';
 import 'steps/scan_step.dart';
 import 'steps/summary_step.dart';
@@ -31,8 +32,15 @@ class _SerialChangeScreenState extends State<SerialChangeScreen> {
   void _rebuild() => setState(() {});
 
   Future<void> _autoPrintLastBox() async {
-    if (_ctrl.cachedPrinter == null || _ctrl.completedBoxes.isEmpty) return;
+    if (_ctrl.completedBoxes.isEmpty) return;
     final last = _ctrl.completedBoxes.last;
+
+    // B1: First box → prompt for printer, cache it
+    if (_ctrl.cachedPrinter == null) {
+      final ip = await _pickPrinterIp();
+      if (ip == null || ip.isEmpty) return; // user cancelled — skip print
+    }
+
     try {
       await _ctrl.printBox(last, printerIp: _ctrl.cachedPrinter!.ip);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -40,8 +48,40 @@ class _SerialChangeScreenState extends State<SerialChangeScreen> {
         backgroundColor: const Color(0xFF2ECC71), duration: const Duration(seconds: 2)));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error imprimiendo caja ${last.boxNumber}: $e'), backgroundColor: Colors.redAccent));
+        content: Text('Error imprimiendo: $e'), backgroundColor: Colors.redAccent));
     }
+  }
+
+  Future<String?> _pickPrinterIp() async {
+    List<SCPrinter> printers = [];
+    try { printers = await SerialChangeService.instance.getPrinters(); } catch (_) {}
+    if (!mounted) return null;
+    final ct = context.ct;
+    final ipCtrl = TextEditingController();
+    SCPrinter? selected = _ctrl.cachedPrinter;
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setD) => AlertDialog(
+        backgroundColor: ct.surface,
+        title: Text('Seleccionar impresora', style: TextStyle(color: ct.textPrimary)),
+        content: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ...printers.map((p) => RadioListTile<SCPrinter>(value: p, groupValue: selected, dense: true,
+            title: Text(p.name, style: TextStyle(color: ct.textPrimary, fontSize: 13)),
+            subtitle: Text(p.ip, style: TextStyle(color: ct.textHint, fontSize: 11)),
+            onChanged: (v) => setD(() => selected = v))),
+          const SizedBox(height: 8),
+          TextField(controller: ipCtrl, style: TextStyle(color: ct.textPrimary, fontSize: 13),
+            decoration: InputDecoration(hintText: 'IP manual (sobreescribe)', hintStyle: TextStyle(color: ct.textHint),
+              filled: true, fillColor: ct.surfaceElevated, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Omitir impresión')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Imprimir')),
+        ])));
+    if (ok != true) { ipCtrl.dispose(); return null; }
+    final manual = ipCtrl.text.trim(); ipCtrl.dispose();
+    if (manual.isNotEmpty) { _ctrl.cachedPrinter = SCPrinter(id: 0, name: 'Manual', ip: manual); return manual; }
+    if (selected != null) { _ctrl.cachedPrinter = selected; return selected!.ip; }
+    return null;
   }
 
   @override

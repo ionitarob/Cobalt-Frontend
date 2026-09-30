@@ -138,12 +138,22 @@ class _ConfigStepState extends State<ConfigStep> {
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: ct.border)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     ),
-    onChanged: (v) => c.orderNbr = v,
+    onChanged: (v) {
+      c.orderNbr = v;
+      if (v.replaceAll('-', '').length >= 9) {
+        c.checkOrderResume(v).then((rd) {
+          if (rd != null && mounted) {
+            c.applyResume(rd);
+            _syncFields();
+          }
+        });
+      }
+    },
     onSubmitted: (v) async {
       c.orderNbr = v;
       if (v.length >= 11) {
-        await c.checkOrderResume(v);
-        if (mounted) setState(() {});
+        final rd = await c.checkOrderResume(v);
+        if (rd != null && mounted) { c.applyResume(rd); _syncFields(); }
       }
     },
   );
@@ -151,6 +161,7 @@ class _ConfigStepState extends State<ConfigStep> {
 
   Widget _typeDrop(CobaltPalette ct) {
     return Autocomplete<SCLabelType>(
+      key: ValueKey(c.selectedOperator?.name),
       displayStringForOption: (t) => t.displayName,
       optionsBuilder: (text) {
         if (text.text.isEmpty) return c.labelTypes;

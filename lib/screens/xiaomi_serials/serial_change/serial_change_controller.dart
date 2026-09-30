@@ -143,6 +143,19 @@ class SerialChangeController extends ChangeNotifier {
     if (newLabel == null) return 'Sin etiquetas';
     final trimmed = oldSerial.trim();
     if (trimmed.isEmpty) return 'Serial vacío';
+
+    // B4: Local duplicate check
+    for (final box in completedBoxes) {
+      for (final m in box.mappings) {
+        if (m.oldSerial == trimmed) return 'Duplicado: ya registrado en caja ${box.boxNumber}';
+      }
+    }
+    if (activeBox != null) {
+      for (final m in activeBox!.mappings) {
+        if (m.oldSerial == trimmed) return 'Duplicado: ya escaneado en esta caja';
+      }
+    }
+
     try {
       final id = await _svc.addRegistry({
         'nr_orden': orderNbr, 'nr_sku': sku, 'nr_unidades': totalUnits,
@@ -150,6 +163,7 @@ class SerialChangeController extends ChangeNotifier {
         'nr_box': activeBox!.boxNumber, 'nr_unidades_box': activeBox!.units,
         'serial_old': trimmed, 'serial_new': newLabel, 'usuario': selectedOperator?.name,
         if (ean.isNotEmpty) 'ean': ean,
+        'fecha_finalizacion': DateTime.now().toIso8601String(),
       });
       activeBox!.mappings.add(SCMapping(id: id, oldSerial: trimmed, newSerial: newLabel, scannedAt: DateTime.now()));
       notifyListeners();
@@ -178,6 +192,22 @@ class SerialChangeController extends ChangeNotifier {
   }
 
   void nextBox() { step = SCStep.scan; notifyListeners(); }
+
+  void cancelBox() {
+    activeBox = null;
+    notifyListeners();
+  }
+
+  /// Next suggested box number = last completed + 1.
+  String get suggestedBoxNumber {
+    if (completedBoxes.isEmpty) return '1';
+    final last = completedBoxes.last.boxNumber;
+    final n = int.tryParse(last);
+    return n != null ? (n + 1).toString() : '';
+  }
+
+  /// Whether the screen should prompt for a printer on this box completion.
+  bool get needsPrinterPrompt => cachedPrinter == null;
 
   Future<Map<String, dynamic>> printBox(SCBoxSession box, {String? printerIp, int? printerId}) {
     return _svc.print(

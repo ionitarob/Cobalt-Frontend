@@ -131,4 +131,9 @@ class SerialChangeService {
     );
     return r.data ?? [];
   }
+
+  /// Update a serial change field (e.g. serial_old).
+  Future<void> updateRecord(int id, Map<String, dynamic> data) async {
+    await _dio.put('/serials/sc/$id', data: data);
+  }
 }

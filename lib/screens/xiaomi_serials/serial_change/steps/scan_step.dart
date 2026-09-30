@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/cobalt_theme.dart';
 import '../../../../core/colors.dart';
 import '../serial_change_controller.dart';
+import '../serial_change_models.dart';
+import '../serial_change_service.dart';
 
 class ScanStep extends StatefulWidget {
   final SerialChangeController ctrl;
@@ -18,6 +20,13 @@ class _ScanStepState extends State<ScanStep> {
   bool _busy = false;
   String? _err;
   SerialChangeController get c => widget.ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    // U1: Auto-fill box number
+    _boxNumCtrl.text = c.suggestedBoxNumber;
+  }
 
   @override
   void dispose() { _boxNumCtrl.dispose(); _boxUnitsCtrl.dispose(); _scanCtrl.dispose(); _scanFocus.dispose(); super.dispose(); }
@@ -55,6 +64,9 @@ class _ScanStepState extends State<ScanStep> {
           Text('Caja ${b.boxNumber}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ct.textPrimary)),
           const Spacer(),
           Text('${b.scannedCount}/${b.units}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: CobaltColors.cobaltLight)),
+          const SizedBox(width: 8),
+          IconButton(icon: Icon(Icons.cancel_outlined, size: 20, color: Colors.redAccent.withValues(alpha: 0.7)),
+            tooltip: 'Cancelar caja', onPressed: () { c.cancelBox(); setState(() {}); }),
         ]),
         const SizedBox(height: 8),
         ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: pct, minHeight: 6, backgroundColor: ct.border, color: CobaltColors.cobaltLight)),
@@ -76,6 +88,7 @@ class _ScanStepState extends State<ScanStep> {
           Text(m.newSerial, style: TextStyle(fontSize: 13, color: ct.textPrimary, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])),
           const SizedBox(width: 8), Icon(Icons.arrow_back, size: 12, color: ct.textHint), const SizedBox(width: 8),
           Expanded(child: Text(m.oldSerial, style: TextStyle(fontSize: 13, color: ct.textSecondary, fontFeatures: const [FontFeature.tabularFigures()]))),
+          InkWell(onTap: () => _editMapping(m, ct), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.edit, size: 14, color: ct.textHint))),
         ]));
       })),
     ]);
@@ -83,4 +96,32 @@ class _ScanStepState extends State<ScanStep> {
   void _startBox() { final e = c.startBox(_boxNumCtrl.text, int.tryParse(_boxUnitsCtrl.text) ?? 0); if (e != null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e))); return; } setState(() {}); _scanFocus.requestFocus(); }
   Future<void> _onScan(String v) async { if (v.trim().isEmpty) return; setState(() { _busy = true; _err = null; }); final e = await c.scanOldSerial(v); if (mounted) { setState(() { _busy = false; _err = e; }); _scanCtrl.clear(); _scanFocus.requestFocus(); } }
   Widget _input(CobaltPalette ct, TextEditingController tc, String h, IconData ic, {TextInputType? kb}) => TextField(controller: tc, keyboardType: kb, style: TextStyle(color: ct.textPrimary), decoration: InputDecoration(hintText: h, hintStyle: TextStyle(color: ct.textHint), prefixIcon: Icon(ic, color: ct.textHint), filled: true, fillColor: ct.surface, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: ct.border)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: ct.border)), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12)));
+
+  Future<void> _editMapping(SCMapping m, CobaltPalette ct) async {
+    final ctrl = TextEditingController(text: m.oldSerial);
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ct.surface,
+      title: Text('Editar S/N original', style: TextStyle(color: ct.textPrimary)),
+      content: TextField(controller: ctrl, autofocus: true, style: TextStyle(color: ct.textPrimary),
+        decoration: InputDecoration(labelText: 'Serial antiguo', labelStyle: TextStyle(color: ct.textHint),
+          filled: true, fillColor: ct.surfaceElevated, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Guardar')),
+      ]));
+    if (ok == true && m.id != null) {
+      final newVal = ctrl.text.trim();
+      if (newVal.isNotEmpty && newVal != m.oldSerial) {
+        try {
+          await SerialChangeService.instance.updateRecord(m.id!, {'serial_old': newVal});
+          m.oldSerial = newVal;
+          if (mounted) setState(() {});
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
+    ctrl.dispose();
+  }
+
 }
